@@ -55,78 +55,96 @@ Reel.set_output_type("gif")
 pattern = load(_mkpath("testpattern_small.png"))
 pattern_noalpha = load(_mkpath("testpattern_small_noalpha.png"))
 
+tables = Dict{String,Vector{String}}()
+
+srand(1335)
+
+log = Dict{String,Int}()
+function makename(symb)
+    name = string(symb)
+    id = if !haskey(log, name)
+        get!(log, name, 1)
+    else
+        log[name] = log[name]+1
+    end
+    string(name, id > 1 ? id : "")
+end
+
+imgpath = " .. image:: https://rawgit.com/JuliaML/FileStorage/master/Augmentor/"
+inputpath = string(imgpath, "testpattern_small.png ")
+
+for op_expr in det_ops
+    descr = string(op_expr)
+    op = eval(op_expr)
+    name_raw = string(typeof(op).name.name)
+    name = makename(name_raw)
+    if !haskey(tables, name_raw)
+        tables[name_raw] = Vector{String}()
+    end
+    fname = string("operations/", name, ".png")
+
+    outpath = string(imgpath, fname, " ")
+    maxlen = max(length(inputpath), length(outpath))
+    outpath = rpad(outpath, maxlen, " ")
+    inpath = rpad(inputpath, maxlen, " ")
+    border = string("+", rpad("", maxlen, "-"), "+", rpad("", maxlen, "-"), "+")
+    header = string("|", rpad(" Input", maxlen, " "), "|", rpad(" Output for ``$descr``", maxlen, " "), "|")
+    fatborder = string("+", rpad("", maxlen, "="), "+", rpad("", maxlen, "="), "+")
+    line = string("|", inpath, "|", outpath, "|")
+    table = join((border,header,fatborder,line,border), "\n")
+    push!(tables[name_raw], table)
+
+    out = augment(pattern, op)
+    save(_mkpath(fname), out)
+end
+
+log = Dict{String,Int}()
+
+function drawborder!(img, col)
+    img[1:end,   1] .= fill(col, size(img,1))
+    img[1:end, end] .= fill(col, size(img,1))
+    img[1,   1:end] .= fill(col, size(img,2))
+    img[end, 1:end] .= fill(col, size(img,2))
+    img
+end
+
+centered(img) = OffsetArray(img, convert(Tuple, 1 .- round.([Int], ImageTransformations.center(img))))
+
+for (nframe, op_expr) in prob_ops
+    descr = string(op_expr)
+    op = eval(op_expr)
+    name_raw = string(typeof(op).name.name)
+    name = makename(name_raw)
+    if !haskey(tables, name_raw)
+        tables[name_raw] = Vector{String}()
+    end
+    fname = string("operations/", name, ".gif")
+
+    outpath = string(imgpath, fname, " ")
+    maxlen = max(length(inputpath), length(outpath))
+    outpath = rpad(outpath, maxlen, " ")
+    inpath = rpad(inputpath, maxlen, " ")
+    border = string("+", rpad("", maxlen, "-"), "+", rpad("", maxlen, "-"), "+")
+    header = string("|", rpad(" Input", maxlen, " "), "|", rpad(" Sampled outputs for ``$descr``", maxlen, " "), "|")
+    fatborder = string("+", rpad("", maxlen, "="), "+", rpad("", maxlen, "="), "+")
+    line = string("|", inpath, "|", outpath, "|")
+    table = join((border,header,fatborder,line,border), "\n")
+    push!(tables[name_raw], table)
+
+    raw_imgs = [centered(drawborder!(augment(pattern_noalpha, op), colorant"pink")) for i in 1:nframe]
+    imgs = map(parent, map(copy, [paddedviews(colorant"#F3F6F6", raw_imgs...)...]))
+    insert!(imgs, 1, first(imgs)) # otherwise loop isn't smooth
+
+    film = roll(imgs, fps = 2)
+    write(_mkpath(fname), film)
+end
+
 open(_mkpath("tables.txt"), "w") do io
-    srand(1335)
-
-    log = Dict{String,Int}()
-    function makename(symb)
-        name = string(symb)
-        id = if !haskey(log, name)
-            get!(log, name, 1)
-        else
-            log[name] = log[name]+1
+    for (name, lines) in tables
+        write(io, name, "\n", repeat("*", length(name)+5), "\n\n")
+        for line in lines
+            write(io, line, "\n\n")
         end
-        string(name, id > 1 ? id : "")
-    end
-
-    imgpath = " .. image:: https://rawgit.com/JuliaML/FileStorage/master/Augmentor/"
-    inputpath = string(imgpath, "testpattern_small.png ")
-
-    for op_expr in det_ops
-        descr = string(op_expr)
-        op = eval(op_expr)
-        name = makename(typeof(op).name.name)
-        fname = string("operations/", name, ".png")
-
-        outpath = string(imgpath, fname, " ")
-        maxlen = max(length(inputpath), length(outpath))
-        outpath = rpad(outpath, maxlen, " ")
-        inpath = rpad(inputpath, maxlen, " ")
-        border = string("+", rpad("", maxlen, "-"), "+", rpad("", maxlen, "-"), "+")
-        header = string("|", rpad(" Input", maxlen, " "), "|", rpad(" Output for ``$descr``", maxlen, " "), "|")
-        fatborder = string("+", rpad("", maxlen, "="), "+", rpad("", maxlen, "="), "+")
-        line = string("|", inpath, "|", outpath, "|")
-        table = join((border,header,fatborder,line,border), "\n")
-        write(io, table, "\n\n\n")
-
-        out = augment(pattern, op)
-        save(_mkpath(fname), out)
-    end
-
-    log = Dict{String,Int}()
-
-    function drawborder!(img, col)
-        img[1:end,   1] .= fill(col, size(img,1))
-        img[1:end, end] .= fill(col, size(img,1))
-        img[1,   1:end] .= fill(col, size(img,2))
-        img[end, 1:end] .= fill(col, size(img,2))
-        img
-    end
-
-    centered(img) = OffsetArray(img, convert(Tuple, 1 .- round.([Int], ImageTransformations.center(img))))
-
-    for (nframe, op_expr) in prob_ops
-        descr = string(op_expr)
-        op = eval(op_expr)
-        name = makename(typeof(op).name.name)
-        fname = string("operations/", name, ".gif")
-
-        outpath = string(imgpath, fname, " ")
-        maxlen = max(length(inputpath), length(outpath))
-        outpath = rpad(outpath, maxlen, " ")
-        inpath = rpad(inputpath, maxlen, " ")
-        border = string("+", rpad("", maxlen, "-"), "+", rpad("", maxlen, "-"), "+")
-        header = string("|", rpad(" Input", maxlen, " "), "|", rpad(" Sampled outputs for ``$descr``", maxlen, " "), "|")
-        fatborder = string("+", rpad("", maxlen, "="), "+", rpad("", maxlen, "="), "+")
-        line = string("|", inpath, "|", outpath, "|")
-        table = join((border,header,fatborder,line,border), "\n")
-        write(io, table, "\n\n\n")
-
-        raw_imgs = [centered(drawborder!(augment(pattern_noalpha, op), colorant"pink")) for i in 1:nframe]
-        imgs = map(parent, map(copy, [paddedviews(colorant"#F3F6F6", raw_imgs...)...]))
-        insert!(imgs, 1, first(imgs)) # otherwise loop isn't smooth
-
-        film = roll(imgs, fps = 2)
-        write(_mkpath(fname), film)
+        write(io, "\n\n")
     end
 end
