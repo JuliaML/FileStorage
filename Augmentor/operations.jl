@@ -1,28 +1,11 @@
-using Augmentor, ISICArchive, Images, Plots, Colors
-pyplot(reuse=true);
+using Augmentor, ISICArchive, Images, Colors
+import ImageTransformations
+using Reel, PaddedViews, OffsetArrays
+
+Reel.set_output_type("gif")
 
 _mkpath(fname) = joinpath(dirname(@__FILE__()), fname)
 srand(123)
-
-img = get(ImageThumbnailRequest(id = "5592ac599fc3c13155a57a85"))
-
-pl = (Either(FlipX(), FlipY(), NoOp()),
-      Rotate(0:360),
-      Either(ShearX(-5:5),ShearY(-5:5),NoOp()),
-      CropSize(170, 170),
-      Zoom(1:0.05:1.2),
-      Resize(64, 64))
-
-plot(img, size=(256,169), xlim=(1,255), ylim=(1,168), grid=false, ticks=true, color = :black)
-Plots.png(_mkpath("readme_1_in.png"))
-
-anim = @animate for i=1:10
-    plot(augment(img, pl), size=(169,169), xlim=(1,63), ylim=(1,63), grid=false, ticks=true, color = :black);
-end
-Plots.gif(anim, _mkpath("readme_1_out.gif"), fps = 2)
-
-# ----------------------------------------------------------------------
-# All operation examples
 
 det_ops = (
     :(FlipX()),
@@ -47,10 +30,6 @@ prob_ops = (
     10 => :(Zoom(0.9:0.05:1.3)),
     10 => :(Scale(0.9:0.05:1.3)),
 )
-
-import ImageTransformations
-using Reel, PaddedViews, OffsetArrays
-Reel.set_output_type("gif")
 
 pattern = load(_mkpath("testpattern_small.png"))
 pattern_noalpha = load(_mkpath("testpattern_small_noalpha.png"))
