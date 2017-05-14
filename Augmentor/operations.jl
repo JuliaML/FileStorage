@@ -22,6 +22,8 @@ det_ops = (
     :(CropSize(45, 225)),
     :(Zoom(1.2)),
     :(Resize(100,150)),
+    "Crop" => :((Rotate(45),Crop(1:210,1:280))),
+    "CropNative" => :((Rotate(45),CropNative(1:210,1:280))),
 )
 prob_ops = (
     10 => :(Rotate(-10:10)),
@@ -36,8 +38,6 @@ pattern_noalpha = load(_mkpath("testpattern_small_noalpha.png"))
 
 tables = Dict{String,Vector{String}}()
 
-srand(1335)
-
 log = Dict{String,Int}()
 function makename(symb)
     name = string(symb)
@@ -49,13 +49,24 @@ function makename(symb)
     string(name, id > 1 ? id : "")
 end
 
-imgpath = " .. image:: https://rawgit.com/JuliaML/FileStorage/master/Augmentor/"
+imgpath = " .. image:: https://raw.githubusercontent.com/JuliaML/FileStorage/master/Augmentor/"
 inputpath = string(imgpath, "testpattern_small.png ")
 
-for op_expr in det_ops
+extractname(pair::Pair) = string(pair.first)
+extractname(expr::Expr) = string(expr.args[1])
+extractexpr(pair::Pair) = pair.second
+extractexpr(expr::Expr) = expr
+
+# --------------------------------------------------------------------
+# Create pngs
+
+srand(1335)
+
+for op_full in det_ops
+    op_expr = extractexpr(op_full)
     descr = string(op_expr)
     op = eval(op_expr)
-    name_raw = string(typeof(op).name.name)
+    name_raw = extractname(op_full)
     name = makename(name_raw)
     if !haskey(tables, name_raw)
         tables[name_raw] = Vector{String}()
@@ -77,6 +88,9 @@ for op_expr in det_ops
     save(_mkpath(fname), out)
 end
 
+# --------------------------------------------------------------------
+# Create gifs
+
 log = Dict{String,Int}()
 
 function drawborder!(img, col)
@@ -89,10 +103,13 @@ end
 
 centered(img) = OffsetArray(img, convert(Tuple, 1 .- round.([Int], ImageTransformations.center(img))))
 
-for (nframe, op_expr) in prob_ops
+srand(1335)
+
+for (nframe, op_full) in prob_ops
+    op_expr = extractexpr(op_full)
     descr = string(op_expr)
     op = eval(op_expr)
-    name_raw = string(typeof(op).name.name)
+    name_raw = extractname(op_full)
     name = makename(name_raw)
     if !haskey(tables, name_raw)
         tables[name_raw] = Vector{String}()
@@ -118,8 +135,24 @@ for (nframe, op_expr) in prob_ops
     write(_mkpath(fname), film)
 end
 
+# --------------------------------------------------------------------
+# Autogenerate .rst tables in correct order.
+
+order = (
+    "FlipX", "FlipY",
+    "Rotate90", "Rotate180", "Rotate270", "Rotate",
+    "ShearX",
+    "ShearY",
+    "Scale", "Zoom",
+    "Crop", "CropNative",
+    "CropSize",
+    "Resize",
+)
+@assert length(unique(order)) == length(keys(tables))
+
 open(_mkpath("tables.txt"), "w") do io
-    for (name, lines) in tables
+    for name in order
+        lines = tables[name]
         write(io, name, "\n", repeat("*", length(name)+5), "\n\n")
         for line in lines
             write(io, line, "\n\n")

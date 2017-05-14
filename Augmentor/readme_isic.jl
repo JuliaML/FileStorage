@@ -17,10 +17,10 @@ pipeline = (
 
 # Create image that shows the input
 plot(img, size=(256,169), xlim=(1,255), ylim=(1,168), grid=false, ticks=true)
-Plots.png(mkpath("readme_1_in.png"))
+Plots.png(mkpath("readme/isic_in.png"))
 
 # create animate gif that shows 10 outputs
 anim = @animate for i=1:10
     plot(augment(img, pipeline), size=(169,169), xlim=(1,63), ylim=(1,63), grid=false, ticks=true);
 end
-Plots.gif(anim, mkpath("readme_1_out.gif"), fps = 2)
+Plots.gif(anim, mkpath("readme/isic_out.gif"), fps = 2)
