@@ -31,6 +31,8 @@ prob_ops = (
     10 => :(ShearY(-10:10)),
     10 => :(Zoom(0.9:0.05:1.3)),
     10 => :(Scale(0.9:0.05:1.3)),
+    10 => :(ElasticDistortion(15,15,0.1)),
+    10 => :(ElasticDistortion(10,10,0.2,4,3,true)),
 )
 
 pattern = load(_mkpath("testpattern_small.png"))
@@ -144,6 +146,7 @@ order = (
     "ShearX",
     "ShearY",
     "Scale", "Zoom",
+    "ElasticDistortion",
     "Crop", "CropNative",
     "CropSize",
     "Resize",
