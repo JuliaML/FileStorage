@@ -24,6 +24,7 @@ det_ops = (
     :(Resize(100,150)),
     "Crop" => :((Rotate(45),Crop(1:210,1:280))),
     "CropNative" => :((Rotate(45),CropNative(1:210,1:280))),
+    :(CropRatio(1)),
 )
 prob_ops = (
     10 => :(Rotate(-10:10)),
@@ -148,7 +149,7 @@ order = (
     "Scale", "Zoom",
     "ElasticDistortion",
     "Crop", "CropNative",
-    "CropSize",
+    "CropSize", "CropRatio",
     "Resize",
 )
 @assert length(unique(order)) == length(keys(tables))
