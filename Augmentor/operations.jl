@@ -25,6 +25,7 @@ det_ops = (
     "Crop" => :((Rotate(45),Crop(1:210,1:280))),
     "CropNative" => :((Rotate(45),CropNative(1:210,1:280))),
     :(CropRatio(1)),
+    :(ConvertEltype(GrayA)),
 )
 prob_ops = (
     10 => :(Rotate(-10:10)),
@@ -105,7 +106,7 @@ function drawborder!(img, col)
     img
 end
 
-centered(img) = OffsetArray(img, convert(Tuple, 1 .- round.([Int], ImageTransformations.center(img))))
+centered(img) = OffsetArray(img, convert(Tuple, 1 .- round.(Int, ImageTransformations.center(img))))
 
 srand(1335)
 
@@ -153,6 +154,7 @@ order = (
     "CropSize", "CropRatio",
     "RCropRatio",
     "Resize",
+    "ConvertEltype",
 )
 @assert length(unique(order)) == length(keys(tables))
 
